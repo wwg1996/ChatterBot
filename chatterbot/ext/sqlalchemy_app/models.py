@@ -1,8 +1,23 @@
-from sqlalchemy import Table, Column, Integer, String, DateTime, ForeignKey, PickleType
+from sqlalchemy import Table, Column, Integer, DateTime, ForeignKey, PickleType
+from sqlalchemy.types import TypeDecorator, Unicode
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declared_attr, declarative_base
 from chatterbot.conversation.statement import StatementMixin
+
+
+class CoerceUTF8(TypeDecorator):
+    """
+    Safely coerce Python bytestrings to Unicode
+    before passing off to the database.
+    """
+
+    impl = Unicode
+
+    def process_bind_param(self, value, dialect):
+        if isinstance(value, str):
+            value = value.decode('utf-8')
+        return value
 
 
 class ModelBase(object):
@@ -40,7 +55,7 @@ class Tag(Base):
     A tag that describes a statement.
     """
 
-    name = Column(String)
+    name = Column(CoerceUTF8)
 
 
 class Statement(Base, StatementMixin):
@@ -48,7 +63,7 @@ class Statement(Base, StatementMixin):
     A Statement represents a sentence or phrase.
     """
 
-    text = Column(String, unique=True)
+    text = Column(CoerceUTF8, unique=True)
 
     tags = relationship(
         'Tag',
@@ -90,7 +105,7 @@ class Response(Base):
     Response, contains responses related to a given statement.
     """
 
-    text = Column(String)
+    text = Column(CoerceUTF8)
 
     created_at = Column(
         DateTime(timezone=True),
@@ -99,7 +114,7 @@ class Response(Base):
 
     occurrence = Column(Integer, default=1)
 
-    statement_text = Column(String, ForeignKey('statement.text'))
+    statement_text = Column(CoerceUTF8, ForeignKey('statement.text'))
 
     statement_table = relationship(
         'Statement',
