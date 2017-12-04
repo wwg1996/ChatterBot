@@ -7,16 +7,19 @@ from chatterbot.conversation.statement import StatementMixin
 
 
 class CoerceUTF8(TypeDecorator):
-    """
-    Safely coerce Python bytestrings to Unicode
-    before passing off to the database.
-    """
 
     impl = Unicode
 
     def process_bind_param(self, value, dialect):
-        if isinstance(value, str):
-            value = value.decode('utf-8')
+        """
+        Coerce Python bytestrings to Unicode before
+        they are saved to the database.
+        """
+        import sys
+
+        if sys.version_info[0] < 3:
+            if isinstance(value, str):
+                value = value.decode('utf-8')
         return value
 
 
